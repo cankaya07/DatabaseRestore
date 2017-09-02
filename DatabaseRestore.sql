@@ -3,24 +3,25 @@ IF OBJECT_ID('dbo.DatabaseRestore') IS NULL
 GO
 
 ALTER PROCEDURE [dbo].[DatabaseRestore]
-	  @Database NVARCHAR(128) = NULL, 
-	  @RestoreDatabaseName NVARCHAR(128) = NULL, 
-	  @OlaBackupPath NVARCHAR(MAX) = NULL,
-	  @BackupPathFull NVARCHAR(MAX) = NULL, 
-	  @BackupPathDiff NVARCHAR(MAX) = NULL, 
-	  @BackupPathLog NVARCHAR(MAX) = NULL,
-	  @MoveFiles BIT = 0, 
-	  @MoveDataDrive NVARCHAR(260) = NULL, 
-	  @MoveLogDrive NVARCHAR(260) = NULL, 
-	  @TestRestore BIT = 0, 
-	  @RunCheckDB BIT = 0, 
-	  @RestoreDiff BIT = 0,
-	  @ContinueLogs BIT = 0, 
-	  @RunRecovery BIT = 0, 
-	  @StopAt NVARCHAR(14) = NULL,
-	  @Bypass BIT =0,
-	  @Debug INT = 0, 
-	  @Help BIT = 0,
+	  @Database NVARCHAR(128) = NULL,  --If you want to restore original name
+	  @RestoreDatabaseName NVARCHAR(128) = NULL, --If you want to restore another database name
+	  @OlaBackupPath NVARCHAR(MAX) = NULL,--You used Ola's backup script just set backup commands path  
+	  @BackupPathFull NVARCHAR(MAX) = NULL, --Your full backup folder path
+	  @BackupPathDiff NVARCHAR(MAX) = NULL, --Your diff backup folder path
+	  @BackupPathLog NVARCHAR(MAX) = NULL,--Your log backup folder path
+	  @MoveFiles BIT = 0, --To specify another path to restore
+	  @MoveDataDrive NVARCHAR(260) = NULL, --data file's new location
+	  @MoveLogDrive NVARCHAR(260) = NULL, -- log file's new location
+	  @TestRestore BIT = 0, --restore db with your configuration and drop database be carefull!
+	  @RunCheckDB BIT = 0, -- perform ola's checkdb operation
+	  @RestoreDiff BIT = 0,-- apply last diff backup
+	  @ContinueLogs BIT = 0, --apply log files
+	  @RunRecovery BIT = 0,  --set recovery to database
+	  @StopAt NVARCHAR(14) = NULL,--set Point in time recovery e.g 20170826111000
+	  @Bypass BIT =0,--bypass already performed backups. lets save some time(io,network,cpu) for dba's. 
+				  -- for huge databases, some problem with your AG databases or interupted running this script for some reason.
+	  @Debug INT = 0, --1 log 2 debug
+	  @Help BIT = 0,--1 for help
 	  @VersionDate DATETIME = NULL OUTPUT
 AS
 SET NOCOUNT ON;
