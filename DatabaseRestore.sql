@@ -5,10 +5,10 @@ GO
 ALTER PROCEDURE [dbo].[DatabaseRestore]
 	  @Database NVARCHAR(128) = NULL,  --If you want to restore original name
 	  @RestoreDatabaseName NVARCHAR(128) = NULL, --If you want to restore another database name
-	  @OlaBackupPath NVARCHAR(MAX) = NULL,--You used Ola's backup script just set backup commands path  
-	  @BackupPathFull NVARCHAR(MAX) = NULL, --Your full backup folder path
-	  @BackupPathDiff NVARCHAR(MAX) = NULL, --Your diff backup folder path
-	  @BackupPathLog NVARCHAR(MAX) = NULL,--Your log backup folder path
+	  @OlaBackupPath VARCHAR(4000) = NULL,--You used Ola's backup script just set backup commands path  
+	  @BackupPathFull VARCHAR(4000) = NULL, --Your full backup folder path
+	  @BackupPathDiff VARCHAR(4000) = NULL, --Your diff backup folder path
+	  @BackupPathLog VARCHAR(4000) = NULL,--Your log backup folder path
 	  @MoveFiles BIT = 0, --To specify another path to restore
 	  @MoveDataDrive NVARCHAR(260) = NULL, --data file's new location
 	  @MoveLogDrive NVARCHAR(260) = NULL, -- log file's new location
@@ -205,7 +205,9 @@ DECLARE @cmd NVARCHAR(4000) = N'', --Holds xp_cmdshell command
 
 DECLARE @FileList TABLE
 (
-    BackupFile NVARCHAR(255)
+    BackupFile NVARCHAR(255),
+	depth int,
+	[file] int
 );
 
 DECLARE @BackupFileList TABLE
@@ -414,17 +416,19 @@ ELSE
 	-- get list of files 
 		SET @cmd = N'DIR /b "' + @BackupPathFull + N'"';
 
-		INSERT INTO @FileList (BackupFile)
-		EXEC master.sys.xp_cmdshell @cmd; 	 
+		INSERT INTO @FileList (BackupFile,depth,[file])
+		EXEC master.sys.xp_dirtree @BackupPathFull,0,1;
+		--EXEC master.sys.xp_cmdshell @cmd; 	
 
 		SELECT @LastFullBackup = MAX(BackupFile)
 		FROM @FileList
 		WHERE BackupFile LIKE N'%.bak'
 		AND	BackupFile LIKE N'%' + @Database + N'%';
-		
+
 		delete from @FileList
 		IF(@LastFullBackup IS NOT NULL)
 		BEGIN
+			
 			INSERT INTO @BackupFileList
 			select @LastFullBackup,'D',REPLACE(LEFT(RIGHT(@LastFullBackup, 19), 15),'_','')
 		END
@@ -438,8 +442,9 @@ ELSE
 	-- get list of files 
 		SET @cmd = N'DIR /b "'+ @BackupPathDiff + N'"';
 
-		INSERT INTO @FileList (BackupFile)
-		EXEC master.sys.xp_cmdshell @cmd; 
+		 
+		INSERT INTO @FileList (BackupFile,depth,[file])
+		EXEC master.sys.xp_dirtree @BackupPathDiff,0,1;
 	
 		SELECT @LastDiffBackup = MAX(BackupFile)
 		FROM @FileList as fl
@@ -464,8 +469,11 @@ ELSE
 	BEGIN
 	SET @cmd = N'DIR /b "' + @BackupPathLog + N'"';
 
-	INSERT INTO @FileList (BackupFile)
-	EXEC master.sys.xp_cmdshell @cmd;
+	 
+
+	INSERT INTO @FileList (BackupFile,depth,[file])
+	EXEC master.sys.xp_dirtree @BackupPathLog,0,1;
+
 
 	INSERT INTO @BackupFileList
 	select BackupFile,'L',REPLACE(LEFT(RIGHT(fl.BackupFile, 19), 15),'_','') FROM @FileList AS fl
@@ -479,7 +487,7 @@ ELSE
 	END
 	/*PREPARE RESTORE OP*/
  
-
+ 
 /*Sanity check folders*/
 IF EXISTS(
 		SELECT 1 
@@ -551,7 +559,8 @@ ELSE
 BEGIN
 --full restore op.
 	SET @sql = N'RESTORE DATABASE ' + @RestoreDatabaseName + N' FROM DISK = ''' + @BackupPathFull + @LastFullBackup + N''' WITH NORECOVERY, REPLACE' + @MoveOption + NCHAR(13);
-	EXECUTE @sql = [dbo].[CommandExecute] @Command = @sql, @CommandType = 'RESTORE DATABASE', 
+	select 'RESTORE DATABASE ' + @RestoreDatabaseName + N' FROM DISK = ''' + @BackupPathFull + @LastFullBackup + N''' WITH NORECOVERY, REPLACE' 
+	EXECUTE [dbo].[CommandExecute] @Command = @sql, @CommandType = 'RESTORE DATABASE', 
 	@Mode = 1, @DatabaseName = @Database, @LogToTable = 'Y', @Execute = 'Y';
 END
 
