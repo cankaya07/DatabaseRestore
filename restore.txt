@@ -1,0 +1,15 @@
+Restore Op using Ola''s backup script
+First of all set backup paths if its more than one use comma without any spacecharacter
+set database names e.g. ALL_DATABASES or databasename list
+Get related dbs info e.q dbname backuptype list and their performed backup times
+
+@BackupPath=''
+@Database='AdventureWorks'
+@ChooseCopyOnly=Y -- diff selected Y this option wont work
+@RestoreDiff=Y
+@RestoreLog=Y
+@StopAt=''
+@ResumeAG=Y
+@Debug=Y
+@Execute=Y
+
